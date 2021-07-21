@@ -14,8 +14,8 @@
 *** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
 *** https://www.markdownguide.org/basic-syntax/#reference-style-links
 -->
-![GitHub issues](https://img.shields.io/github/issues/sweeneyngo/swvgio?style=for-the-badge)
-![GitHub](https://img.shields.io/github/license/sweeneyngo/swvgio?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/sweeneyngo/swvgio?style=flat-square)
+[![License](https://img.shields.io/github/license/sweeneyngo/swvgio?style=flat-square)](./LICENSE.txt)
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
