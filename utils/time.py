@@ -1,4 +1,8 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+
+
+def getTime():
+    return datetime.now()
 
 
 def getPreviousMonth():
