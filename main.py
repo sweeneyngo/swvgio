@@ -1,62 +1,28 @@
-#!/env/bin/python
-
-import os
-
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
-
-from api import createPlaylist, getChannel, search, addPlaylistItem
-from collector import gather
-from utils import time
-
-scopes = ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/youtube.force-ssl"]
-vgid = "UCkkAwQwkwmDHTPuxr2Q7Z1g"
+from api.fetch import createPlaylist, addPlaylistItem, fetchPlaylists
+from api.authenticate import validateOAuth2
+from collector.search import Collector
+from utils.time import getTitle, getDescription
 
 def main():
-      # Disable OAuthlib's HTTPS verification when running locally.
-    # *DO NOT* leave this option enabled in production.
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-    client_secret = "client_secret_899475630692-9ged7luqiefjle1l6dbtq70sinigk0ui.apps.googleusercontent.com.json"
+    youtube = validateOAuth2()
 
-    # Get credentials and create an API client
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        client_secret, scopes)
-
-    youtube = googleapiclient.discovery.build(
-        'youtube', 'v3', credentials=flow.run_console())
-
-    # list vgperson's recommendations
-    playlists, headers = gather.parseList()
-    if (playlists and headers):
-        print(headers)
-
-    # funnel into playlist IDs
-    ids = []
-    for voca in playlists[0]:
-        query = ' '.join(voca.title + voca.artist)
-        response = search.search(youtube, query)
-
-        if (response['pageInfo']['resultsPerPage'] >= 1 and response['items'] != []):
-            for i in range(len(response['items'])):
-                if response['items'][i]['id']['kind'] == "youtube#video":
-                    ids.append(response['items'][i]['id']['videoId'])
-                    break
-
-        else:
-            print('None')
-
-    print(ids)
-
-    response = createPlaylist.createPlaylist(youtube, time.getTitle(), time.getDescription())
+    # check if playlist already exists
+    if fetchPlaylists(youtube)['items'][0]['snippet']['title'] == getTitle():
+        print('Playlist already exists! Exiting...')
+        exit(0)
     
+    # fetch youtubeIDs
+    collector = Collector()
+    ids = collector.Fetch()
+
+    # ratelimiting: 10k/day, usage:50-150/mo [POST]
+    playlist = createPlaylist(youtube, getTitle(), getDescription())
+
     # add items based on IDs (need response from playlist)
     for id in ids:
-        response = addPlaylistItem.addPlaylistItem(youtube, '''playlist_id''', id)
+        response = addPlaylistItem(youtube, playlist['id'], id)
 
-    # response = getChannel.getChannel(youtube, vgid)
-    # print(response)
 
 if __name__ == "__main__":
     main()
