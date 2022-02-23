@@ -1,5 +1,11 @@
 from bs4 import BeautifulSoup, SoupStrainer
+from datetime import date, timedelta
 import httplib2
+
+
+SOURCE = (
+    f"https://vgperson.com/vocalhighlights.php?m={(date.today().replace(day=1) - timedelta(days=1)).strftime('%Y-%m')}"
+)
 
 
 class Voca:
@@ -22,12 +28,15 @@ class Voca:
 
 def parseVG():
 
+    print(SOURCE)
+
     # http client
     http = httplib2.Http()
 
     try:
-        status, response = http.request("https://vgperson.com/vocalhighlights.php?m=2021-06")
+        status, response = http.request(SOURCE)
         # status, response = http.request(getSearchQuery())
+        print("Success!", status)
     except httplib2.ServerNotFoundError:
         print("Couldn't fetch resource.")
         return None, None

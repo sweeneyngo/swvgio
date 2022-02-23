@@ -19,6 +19,7 @@ class Collector:
         self.playlists = parseVG()
         self.vocaIDs = self.__getVocaIDs()
         self.youtubeIDs = self.__getYoutubeIDs()
+        self.unavailable = []
 
     def __getVocaIDs(self):
         vocaIDs = []
@@ -27,6 +28,8 @@ class Collector:
         for voca in self.playlists[0]:
             nicoID = voca.link.split("/")[-1]
             nicoIDs.append(nicoID)
+
+        print(len(nicoIDs))
 
         for nicoID in nicoIDs:
             print("Fetching from NND...", end="")
@@ -50,13 +53,30 @@ class Collector:
             print("Fetching from vocaDB...", end="")
             response = grab(f"https://vocadb.net/api/songs/{id}?fields=PVs")
             pvs = response.json()["pvs"]
+            print(len(pvs))
+
+            if len(pvs) == 0:
+                print("No YT port found for video.")
+                self.unavailable.append(id)
+                break
+
             for pv in pvs:
+
+                # Assume that the first instance is always the PV version
+                # Duplicates can be either:
+                # 1) Auto-generated audio videos for albums (easy to discern)
+                # 2) Lyric videos from same channel (difficult)
+
                 if pv["service"] == "Youtube":
                     youtubeID = pv["url"].split("/")[-1]
                     youtubeIDs.append(youtubeID)
                     print(f"found YT:{youtubeID}")
+                    break
 
         return youtubeIDs
+
+    def get_unavailable_videos(self):
+        return self.unavailable
 
     def Fetch(self):
         return self.youtubeIDs

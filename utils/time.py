@@ -17,9 +17,21 @@ def getSearchQuery():
 
 
 def getTitle():
-    currentTime = getPreviousMonth().strftime("%B %Y")
-    return f"vgperson's Vocaloid Highlights: {currentTime}"
+    currentTime = getPreviousMonth().strftime("%b'%y: Stand-Outs")
+    return f"{currentTime}"
 
 
-def getDescription():
-    return f"{getTitle()}: A compilation of known videos on Youtube from vgperson's Vocaloid Highlights for the following month. All videos listed were attempted to find versions available on Youtube, but there is no guarentee that every video is listed. To see the full list curated by vgperson, please consult here: {getSearchQuery()}."
+def getDescription(unavailable, banned_countries):
+
+    description = f"WARNING: \nCan't guarantee every video is listed!\n\n\nrestricted ➤\n"
+
+    for u in banned_countries:
+        description += f"[{u[0]}]: {u[1]}\n"
+
+    description += f"\n\nunavailable ➤"
+
+    for c in unavailable:
+        print(c)
+
+    description += f"\n\n\nTo see the full list curated by vgperson, please consult here: {getSearchQuery()}."
+    return description

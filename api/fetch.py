@@ -27,7 +27,34 @@ def search(youtube, query):
     return response
 
 
+def checkBannedCountries(youtube, id):
+    request = youtube.videos().list(part="snippet,contentDetails", id=id)
+    response = request.execute()
+
+    try:
+        query = response["items"][0]["contentDetails"]["regionRestriction"]["blocked"]
+    except KeyError or IndexError:
+        return
+
+    return query
+
+
+def checkDescription(youtube, id):
+    request = youtube.videos().list(part="snippet,contentDetails", id=id)
+    response = request.execute()
+
+    try:
+        query = response["items"][0]["snippet"]["description"]
+    except KeyError or IndexError:
+        print("Failed to fetch the video's description. Skipping...")
+        return
+
+    return query
+
+
 def addPlaylistItem(youtube, playlist_id, video_id):
+    print(video_id)
+
     request = youtube.playlistItems().insert(
         part="snippet",
         body={
@@ -43,6 +70,19 @@ def addPlaylistItem(youtube, playlist_id, video_id):
     )
     response = request.execute()
     return response
+
+
+def checkPlaylistCount(youtube, id):
+    request = youtube.playlistItems().list(part="snippet", playlistId=id)
+    response = request.execute()
+
+    try:
+        query = response["pageInfo"]["totalResults"]
+    except KeyError or IndexError:
+        print("Failed to fetch the playlist's video count. Skipping...")
+        return
+
+    return query
 
 
 def listVideos(youtube):
