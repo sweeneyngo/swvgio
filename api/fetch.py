@@ -1,3 +1,7 @@
+from googleapiclient.errors import HttpError
+import time
+
+
 def createPlaylist(youtube, title, description):
     request = youtube.playlists().insert(
         part="snippet,status",
@@ -33,7 +37,7 @@ def checkBannedCountries(youtube, id):
 
     try:
         query = response["items"][0]["contentDetails"]["regionRestriction"]["blocked"]
-    except KeyError or IndexError:
+    except (IndexError, KeyError) as err:
         return
 
     return query
@@ -45,7 +49,8 @@ def checkDescription(youtube, id):
 
     try:
         query = response["items"][0]["snippet"]["description"]
-    except KeyError or IndexError:
+    except (KeyError, IndexError) as err:
+        print(err)
         print("Failed to fetch the video's description. Skipping...")
         return
 
@@ -53,14 +58,11 @@ def checkDescription(youtube, id):
 
 
 def addPlaylistItem(youtube, playlist_id, video_id):
-    print(video_id)
-
     request = youtube.playlistItems().insert(
         part="snippet",
         body={
             "snippet": {
                 "playlistId": playlist_id,
-                "position": 0,
                 "resourceId": {
                     "kind": "youtube#video",
                     "videoId": video_id,
@@ -68,17 +70,37 @@ def addPlaylistItem(youtube, playlist_id, video_id):
             }
         },
     )
+
     response = request.execute()
     return response
 
 
 def checkPlaylistCount(youtube, id):
     request = youtube.playlistItems().list(part="snippet", playlistId=id)
-    response = request.execute()
 
     try:
+        response = request.execute()
         query = response["pageInfo"]["totalResults"]
-    except KeyError or IndexError:
+    except HttpError as err:
+        # If the error is a rate limit or connection error,
+        # wait and try again.
+        print("? ", err.code)
+
+        if err.resp.status in [404]:
+            print("Playlist doesn't exist.")
+            print(f"An HTTP error {err.code} occurred:{err.reason}")
+            print("Sleeping for 5 seconds...")
+            time.sleep(5)
+
+        elif err.resp.status in [403, 500, 503]:
+            print(f"An HTTP error {err.code} occurred:{err.reason}")
+            print("Sleeping for 5 seconds...")
+            time.sleep(5)
+        else:
+            raise
+
+    except (KeyError, IndexError) as err:
+        print(err)
         print("Failed to fetch the playlist's video count. Skipping...")
         return
 

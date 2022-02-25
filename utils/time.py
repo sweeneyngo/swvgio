@@ -16,8 +16,12 @@ def getSearchQuery():
     return f"https://vgperson.com/vocalhighlights.php?m={currentTime}"
 
 
-def getTitle():
-    currentTime = getPreviousMonth().strftime("%b'%y: Stand-Outs")
+def getTitle(mode):
+    if mode == 0:
+        currentTime = getPreviousMonth().strftime("%b'%y: Stand-Outs")
+    else:
+        currentTime = getPreviousMonth().strftime("%b'%y: Worth Your Time")
+
     return f"{currentTime}"
 
 
@@ -31,7 +35,7 @@ def getDescription(unavailable, banned_countries):
     description += f"\n\nunavailable ➤"
 
     for c in unavailable:
-        print(c)
+        description += f"[{c}]\n"
 
     description += f"\n\n\nTo see the full list curated by vgperson, please consult here: {getSearchQuery()}."
     return description

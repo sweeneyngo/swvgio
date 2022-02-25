@@ -13,12 +13,9 @@ from utils.time import getTitle, getDescription, getTime
 import schedule
 import time
 import re
-from urllib.error import HTTPError
+from googleapiclient.errors import HttpError
 
-
-def job():
-    print(getTime())
-
+def initAuth():
     youtube = validateOAuth2()
 
     # check if playlist already exists
@@ -33,9 +30,14 @@ def job():
 
     # fetch youtubeIDs
     collector = Collector()
-    ids = collector.Fetch()
+    return youtube, collector
+
+def job(youtube, collector, mode):
+    
+    ids = collector.Fetch(mode)
     banned_countries = []
 
+    print("Check for invalid videos...")
     # check banned countries
     for id in ids:
 
@@ -48,7 +50,10 @@ def job():
 
     # ratelimiting: 10k/day, usage:50-150/mo [POST]
     print("Creating playlist . . .")
-    playlist = createPlaylist(youtube, getTitle(), getDescription(collector.get_unavailable_videos(), banned_countries))
+    playlist = createPlaylist(
+        youtube, getTitle(mode), getDescription(collector.get_unavailable_videos(), banned_countries)
+    )
+    time.sleep(2)
 
     # add items based on IDs (need response from playlist)
     print("Adding playlist items . . .")
@@ -61,7 +66,8 @@ def job():
             # wait until playlist updates
             print(checkPlaylistCount(youtube, playlist["id"]))
             if checkPlaylistCount(youtube, playlist["id"]) != i:
-                time.sleep(1)
+                print("Playlist has not been updated. Sleeping for 5 sec.")
+                time.sleep(5)
                 continue
 
             print(f"Adding {id}...")
@@ -69,16 +75,33 @@ def job():
                 response = addPlaylistItem(youtube, playlist["id"], id)
                 timeout = True
 
-            except HTTPError as err:
-                print(f"An HTTP error {err.code} occurred:{err.reason}")
-                print("Sleeping for 5 seconds...")
-                time.sleep(5)
+            except HttpError as err:
+                # If the error is a rate limit or connection error,
+                # wait and try again.
+                print("? ", err.code)
+
+                if err.resp.status in [404]:
+                    print("Playlist doesn't exist.")
+                    print(f"An HTTP error {err.code} occurred:{err.reason}")
+                    print("Sleeping for 5 seconds...")
+                    time.sleep(5)
+
+                elif err.resp.status in [403, 500, 503]:
+                    print(f"An HTTP error {err.code} occurred:{err.reason}")
+                    print("Sleeping for 5 seconds...")
+                    time.sleep(5)
+                else:
+                    raise
+
+        time.sleep(2)
 
     print("Successfully created playlist!", response["id"])
 
 
 def main():
-    job()
+    youtube, collector = initAuth()
+    job(youtube, collector, 0)
+    job(youtube, collector, 1)
     # schedule.every(2).weeks.do(job)
 
     # while True:
